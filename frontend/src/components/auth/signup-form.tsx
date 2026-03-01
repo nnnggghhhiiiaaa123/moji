@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input"
 import { z } from "zod"
 import { useForm } from "react-hook-form"
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useAuthStore } from "@/stores/useAuthStore"
+import { useNavigate } from "react-router-dom"
 
 const signUpSchema = z.object({
   firstname: z.string().min(1, 'Tên bắt buộc phải có'),
@@ -21,13 +23,23 @@ export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<SignUpFormValues>({
-    resolver: zodResolver(signUpSchema)
+  const { signUp } = useAuthStore();
+  const navigate = useNavigate();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<SignUpFormValues>({
+    resolver: zodResolver(signUpSchema),
   });
 
   const onSubmit = async (data: SignUpFormValues) => {
+    const {firstname, lastname, username, email, password} = data;
+
     // gọi backend để signup  
+    await signUp(username, password, email, firstname, lastname);
+
+    navigate("/signin");
   }
 
   return (
@@ -170,7 +182,7 @@ export function SignupForm({
             <img
               src="/placeholderSignUp.png"
               alt="Image"
-              className="absolute top-1/2 -translate-1/2 object-cover"
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 object-cover"
             />
           </div>
         </CardContent>

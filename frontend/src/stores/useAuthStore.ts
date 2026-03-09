@@ -1,5 +1,5 @@
-import {create} from 'zustand';
-import {toast} from 'sonner';
+import { create } from 'zustand';
+import { toast } from 'sonner';
 import type { AuthState } from '@/types/store';
 import { authService } from "@/services/authService";
 import { fi } from 'zod/v4/locales';
@@ -9,13 +9,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     user: null,
     loading: false,
 
+    setAccessToken: (accessToken) => {
+        set({ accessToken });
+    },
     clearState: () => {
-        set({accessToken: null, user: null, loading: false})
+        set({ accessToken: null, user: null, loading: false })
     },
 
     signUp: async (username, password, email, firstName, lastName) => {
         try {
-            set({loading: true})
+            set({ loading: true })
 
             // gọi api
             await authService.signUp(username, password, email, firstName, lastName);
@@ -25,20 +28,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             console.error(error);
             toast.error('Đăng ký không thành công');
         } finally {
-            set({loading: false})
+            set({ loading: false })
         }
     },
 
     signIn: async (username, password) => {
         try {
-            set({loading: true});
+            set({ loading: true });
 
-            const {accessToken} = await authService.signIn(username, password);
-            set({accessToken});
+            const { accessToken } = await authService.signIn(username, password);
+            get().setAccessToken(accessToken);
 
             await get().fetchMe();
 
-            toast.success('Chào mừng bạn quay lại với Moji'); 
+            toast.success('Chào mừng bạn quay lại với Moji');
 
         } catch (error) {
             console.error(error);
@@ -59,19 +62,41 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     fetchMe: async () => {
         try {
-            set({loading: true});
+            set({ loading: true });
             const user = await authService.fetchMe();
 
-            set({user});
+            set({ user });
 
         } catch (error) {
             console.error(error);
-            set({user: null, accessToken: null});
+            set({ user: null, accessToken: null });
             toast.error("Lỗi xảy ra khi lấy dữ liệu người . Hãy thử lại!");
         } finally {
-            set({loading: false});
+            set({ loading: false });
+        }
+    },
+
+    refresh: async () => {
+        try {
+            set({ loading: true })
+            const { user, fetchMe, setAccessToken } = get();
+            const accessToken = await authService.refresh();
+
+            setAccessToken(accessToken);
+
+            if (!user) {
+                await fetchMe();
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!")
+            get().clearState();
+        } finally {
+            set({ loading: false })
         }
     }
+
+
 
 
 
